@@ -1,0 +1,12 @@
+[Unit]
+Description=Clipboard bridge between Wayland and X11 (Xwayland)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/cbfix-bridge
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

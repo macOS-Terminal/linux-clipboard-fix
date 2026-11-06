@@ -1,0 +1,19 @@
+# Build output
+/build/
+/dist/
+cbfix-1.0.0/
+
+# Release artifacts
+*.tar.gz
+*.pkg.tar.zst
+*.rpm
+*.deb
+
+# Test artifacts
+*.class
+tests/java/
+
+# Editor / OS
+*.swp
+*~
+.DS_Store
