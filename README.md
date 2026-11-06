@@ -1,14 +1,29 @@
-# cbfix
+<div align="center">
 
-**修复 Linux 上 X11 应用与系统剪贴板不互通的问题。**
+![cbfix-bridge banner](assets/banner.svg)
 
-在 Wayland 桌面上，跑在 XWayland 里的应用经常出现「复制了，别处粘贴不出来；别处复制的，它粘贴不出来」。`cbfix-bridge` 用一个极小的后台守护进程把 **Wayland 剪贴板** 和 **X11 CLIPBOARD 选区** 双向、无损地连起来。
+# cbfix-bridge
 
-典型受害者：**HMCL**（Minecraft 启动器，JavaFX/AWT 走 X11）、**Codex CLI**、以及一切真正运行在 X11 上的程序。
+**彻底修复 Linux Wayland 桌面上 X11 / XWayland 应用与系统剪贴板不互通的顽疾**
+
+[![Release](https://img.shields.io/github/v/release/macOS-Terminal/linux-clipboard-fix?style=flat-square&color=2ea043&label=Release)](https://github.com/macOS-Terminal/linux-clipboard-fix/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/macOS-Terminal/linux-clipboard-fix/total?style=flat-square&color=0969da&label=Downloads)](https://github.com/macOS-Terminal/linux-clipboard-fix/releases/latest)
+[![Stars](https://img.shields.io/github/stars/macOS-Terminal/linux-clipboard-fix?style=flat-square&color=e3b341&label=Stars)](https://github.com/macOS-Terminal/linux-clipboard-fix/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+![Platform](https://img.shields.io/badge/Wayland-ext--data--control--v1-1f883d?style=flat-square)
+![C11](https://img.shields.io/badge/Language-C11-555555?style=flat-square)
+
+**[简体中文](README.md) | [English](README_EN.md)**
+
+</div>
+
+> 在 `niri`（搭配 `xwayland-satellite`）、`sway`、`Hyprland` 等 Wayland 合成器下，运行在 XWayland 里的 **X11 应用**（如 Java AWT/Swing/OpenJFX 应用、调用 `xclip`/`xsel` 的 CLI 工具、Wine 程序及传统 X11 GUI 软件）经常陷入“复制了别处粘不出、浏览器复制了粘贴框空白”的剪贴板孤岛。`cbfix-bridge` 以单个零运行时框架依赖的 C11 守护进程，基于 `ext-data-control-v1` 与 ICCCM `INCR` 协议打通 **Wayland ⇄ X11 CLIPBOARD** 双向无损同步。
+>
+> **⭐ 如果这个工具拯救了你的剪贴板体验，请点亮右上角 [Star](https://github.com/macOS-Terminal/linux-clipboard-fix/stargazers) 支持本项目！这能让更多被 XWayland 剪贴板问题困扰的 Linux 用户与开发者搜到它。**
 
 - 单文件 C11 程序，无运行时框架依赖
-- 双向同步，文本与图片
-- 支持大负载（INCR），实测到 5 MB 逐字节一致
+- 双向同步，支持文本与图片（`image/png` / `image/bmp`）
+- 完整实现 ICCCM 大负载分片传输（`INCR`），实测到 5 MB 逐字节一致
 - systemd 用户服务，`enable --now` 即用
 - MIT 许可
 
@@ -18,12 +33,22 @@
 
 | 场景 | 表现 |
 |---|---|
-| 在 HMCL 里复制服务器地址 → 浏览器粘贴 | 粘贴出上一次的旧内容，或空白 |
-| 在浏览器复制 → HMCL 粘贴 | HMCL 粘贴框空着 |
-| 在 Codex CLI 里复制输出 → 编辑器粘贴 | 无内容 |
+| 在 X11 / Java GUI 应用里复制文本 → 浏览器粘贴 | 粘贴出上一次的旧内容，或空白 |
+| 在 Wayland 浏览器复制 → X11 应用里粘贴 | 粘贴框空着，无反应 |
+| 在终端通过 `xclip` / `xsel` 或 X11 CLI 工具复制输出 → 编辑器粘贴 | 无内容 |
 | 装了 `xclip` / `xsel` 也没用 | 它们只能在 X11 内部互通，跨不过 Wayland 边界 |
 
 如果你把 `DISPLAY` 清空、只留 Wayland 环境，某些应用的剪贴板反而正常——这通常说明该应用其实跑在 Wayland 原生后端，问题不在你。
+
+### 常见搜索症状 / 报错速查（SEO 索引）
+
+如果你在 Google、Bing、GitHub Issues 或社区搜索以下问题来到这里，`cbfix-bridge` 正是为你准备的通用解决方案：
+
+- **`xwayland-satellite CLIPBOARD set from X11` 但 `wl-paste` 内容不变**：`xwayland-satellite` 尝试用普通 `wl_data_device` 写剪贴板，因缺少焦点 serial 被合成器静默拒绝，且未实现 Wayland → X11 方向同步。
+- **`niri / sway / Hyprland 下 XWayland 应用无法与 Wayland 浏览器互通剪贴板`**：Java AWT/Swing/OpenJFX、Wine 及传统 X11 程序通过 X11 `CLIPBOARD` 选区读写，与合成器持有的 Wayland 剪贴板断联。
+- **`xclip / xsel 或 X11 终端工具复制后无法粘贴到 Firefox / Chromium`**：工具通过 X11 选区写入 `CLIPBOARD`，Wayland 原生应用无法直接读取。
+- **`java.io.IOException: INCR data is missed` / `Owner failed to convert data`（Java AWT `XSelection` 大文本粘贴报错）**：JDK 的 Xt/ICCCM `XSelection` 实现要求 `INCR` 握手属性必须为携带总长度的 32-bit 整数，零长度属性或分片中断都会触发该异常；`cbfix-bridge` 严格遵循该规范。
+- **`wl-copy` 在后台服务或脚本中提示 `Nothing is copied`（Wayland `wl_data_device.set_selection` focus serial 限制）**：后台无焦点窗口的程序无法通过常规 `wl_data_device` 写入剪贴板，必须走 `ext-data-control-v1` 协议。
 
 ---
 
@@ -68,7 +93,51 @@ xwayland-satellite 上游的修复仍在 `master` 分支、尚未发版。在此
 
 ## 安装
 
-### 从源码构建
+### 方式零：直接下载 Release 安装包（10 秒装好，最推荐）
+
+无需配置编译环境，直接下载 `v1.0.0` 预编译包并启用用户服务即可：
+
+- **Arch Linux / Manjaro / EndeavourOS**：
+  ```bash
+  curl -fLO https://github.com/macOS-Terminal/linux-clipboard-fix/releases/download/v1.0.0/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
+  sudo pacman -U cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
+  systemctl --user enable --now cbfix-bridge.service
+  ```
+
+- **Debian / Ubuntu / Linux Mint**：
+  ```bash
+  curl -fLO https://github.com/macOS-Terminal/linux-clipboard-fix/releases/download/v1.0.0/cbfix-bridge_1.0.0_amd64.deb
+  sudo apt install ./cbfix-bridge_1.0.0_amd64.deb
+  systemctl --user enable --now cbfix-bridge.service
+  ```
+
+- **Fedora / RHEL / openSUSE**：
+  ```bash
+  curl -fLO https://github.com/macOS-Terminal/linux-clipboard-fix/releases/download/v1.0.0/cbfix-bridge-1.0.0-1.x86_64.rpm
+  sudo dnf install ./cbfix-bridge-1.0.0-1.x86_64.rpm
+  systemctl --user enable --now cbfix-bridge.service
+  ```
+
+### 方式一：从本地源码构建安装包
+
+```bash
+git clone https://github.com/macOS-Terminal/linux-clipboard-fix
+cd linux-clipboard-fix
+./scripts/build-packages.sh arch     # 产出 dist/*.pkg.tar.zst（另有 rpm / deb / all）
+sudo pacman -U dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
+```
+
+RPM：`sudo dnf install ./dist/cbfix-bridge-1.0.0-1.x86_64.rpm`；Deb：`sudo apt install ./dist/cbfix-bridge_1.0.0_amd64.deb`。
+
+### 方式二：脚本安装
+
+```bash
+./scripts/install.sh
+```
+
+脚本会构建二进制，并把它安装到 `/usr/bin`（和安装包的路径一致），再把 systemd 用户单元装到 `~/.config/systemd/user/`。
+
+### 方式三：从源码直接 `make` 编译
 
 ```bash
 git clone https://github.com/macOS-Terminal/linux-clipboard-fix
@@ -84,24 +153,7 @@ make
 | Debian/Ubuntu | `sudo apt install build-essential libwayland-dev wayland-protocols libx11-dev libxfixes-dev pkg-config` |
 | Fedora | `sudo dnf install gcc make wayland-devel wayland-protocols-devel libX11-devel libXfixes-devel pkgconf` |
 
-### 方式一：安装包（推荐）
-
-```bash
-./scripts/build-packages.sh arch     # 产出 dist/*.pkg.tar.zst（另有 rpm / deb / all）
-sudo pacman -U dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
-```
-
-RPM：`sudo dnf install ./dist/cbfix-bridge-1.0.0-1.x86_64.rpm`；Deb：`sudo apt install ./dist/cbfix-bridge_1.0.0_amd64.deb`。
-
-### 方式二：脚本安装
-
-```bash
-./scripts/install.sh
-```
-
-脚本会构建二进制，并把它安装到 `/usr/bin`（和安装包的路径一致），再把 systemd 用户单元装到 `~/.config/systemd/user/`。
-
-### 启用 systemd 服务（两种方式都需要）
+### 启用 systemd 服务（所有安装方式通用）
 
 安装完成后会显示一条高亮提示。用**当前用户**（不要加 sudo）执行：
 
@@ -158,7 +210,7 @@ selftest passed
                                                            │ 持有 X11 CLIPBOARD
                                                            │ 完整 TARGETS / INCR
                                                    ┌───────┴────────┐
-                                                   │ HMCL / Codex / │
+                                                   │ Java / xclip / │
                                                    │ 所有 X11 客户端 │
                                                    └────────────────┘
 ```
@@ -168,13 +220,14 @@ selftest passed
 | X11 → Wayland | XFixes `SetSelectionOwnerNotify` | 读取 X11 `CLIPBOARD`（优先 `image/png`，其次 `UTF8_STRING`/`TEXT`），经 `ext_data_control_device_v1.set_selection()` 发布 |
 | Wayland → X11 | `ext_data_control_device_v1.selection` 事件 | 读取合成器 offer，声明 X11 `CLIPBOARD` 所有权，按 ICCCM 应答 `TARGETS`/`UTF8_STRING`/`TIMESTAMP`，大负载走 INCR |
 
-几个关键设计：
+6 个关键工程设计：
 
-- **回声抑制**：用 FNV-1a 内容哈希标记「自己刚推过去的负载」。该内容在另一端再出现时不再转发，杜绝无限循环。
-- **粘滞所有权**：X11 侧无主时自动夺回 `CLIPBOARD`，保证内容常驻可粘贴。
-- **传输钉住（pinning）**：每个进行中的 INCR 传输持有自己的一份负载快照。否则 Wayland 侧中途变更会让正在读取的应用被截断。
-- **事件饥饿防护**：Xlib 的同步往返会把已到达的事件吞进内部队列，使 `poll()` 驱动的循环永久睡死。主循环因此**先 drain 再 poll**，以 `XPending()` 而非 `poll()` 作为「是否有 X 工作」的权威判据。
-- **自愈**：INCR 传输若丢失 `PropertyDelete` 通知，会探测请求方属性的真实状态，区分「对方慢」与「通知丢了」，后者从断点续发，而非丢弃整个传输。
+1. **回声抑制（FNV-1a 内容哈希）**：用 64-bit FNV-1a 内容哈希标记「自己刚推过去的负载」。该内容在另一端再出现时不再转发，从根本上杜绝双向死循环。
+2. **粘滞所有权（Sticky Ownership）**：X11 侧应用退出或释放选区导致无主（`0x0`）时，自动夺回 `CLIPBOARD` 所有权，保证剪贴板内容常驻可粘贴。
+3. **传输钉住（Pinned INCR Snapshots）**：每个进行中的 `INCR` 增量传输独立持有自己的一份负载内存快照（最多并发服务 8 个慢速读者）。即使 Wayland 剪贴板在中途变更，正在读取大文本的应用也不会被截断或读到脏数据。
+4. **JDK / Xt `XSelection` 32-bit 长度标记兼容**：严格遵循 ICCCM/Xt 约定，在 `INCR` 握手阶段写入携带总字节数的 32-bit 属性标记，彻底解决 Java AWT/Swing/OpenJFX 应用粘贴大段文本时抛出 `java.io.IOException: INCR data is missed` 的问题。
+5. **事件饥饿防护（`XPending` 优先于 `poll`）**：Xlib 的同步往返（如 `XGetWindowProperty`）会把已到达的网络事件吞进内部队列，使单纯依赖 fd `poll()` 的事件循环永久睡死、卡住 `INCR` 传输。主循环因此**先 drain 再 poll**，以 `XPending()` 作为是否有待处理 X 事件的权威判据。
+6. **`PropertyDelete` 丢包与 `BadWindow` 自愈**：`INCR` 传输若遇请求方窗口中途关闭（`BadWindow`）会自动回收槽位；若丢失 `PropertyDelete` 通知，会主动探测请求方属性的真实状态，区分「对方读取慢」与「事件通知丢失」，后者直接从断点续发下一分片，而非丢弃整个传输。
 
 ---
 
@@ -199,7 +252,7 @@ bash tests/run-bulk-tests.sh              # 大负载 / 并发 / 中断恢复
 | 读者被 `kill -9` 后恢复服务 | 通过 |
 | 30 次快速复制风暴（fcitx5 干扰下） | 两侧终态一致，零警告 |
 
-Java 参考客户端（JVM 自带的 ICCCM INCR 实现，即 HMCL 的实际代码路径）在 300 KB / 1 MB / 5 MB 全部读到完整长度。
+Java 参考客户端（JVM 自带的 ICCCM INCR 实现，即 Java AWT/Swing/OpenJFX 的实际代码路径）在 300 KB / 1 MB / 5 MB 全部读到完整长度。
 
 ---
 
@@ -247,7 +300,7 @@ Wayland content     : 42 bytes (text)
 - 只桥接 `CLIPBOARD`，**不桥接 PRIMARY**（X11 的中键粘贴选区）。
 - 依赖合成器提供 `ext-data-control-v1`；GNOME/Mutter 不需要也不适用。
 - 需要在图形会话内运行；纯 TTY 或 headless 环境下无意义。
-- 只管 **X11（Xwayland）应用 ↔ Wayland** 这两个方向。原生 Wayland 应用之间由合成器直接互通，不需要桥。Electron/Chromium 类应用（如 ChatGPT 桌面端）在 `ozone=auto` 时通常是原生 Wayland，如果它和 X11 应用（如 HMCL）之间不通，就需要桥。
+- 只管 **X11（Xwayland）应用 ↔ Wayland** 这两个方向。原生 Wayland 应用之间由合成器直接互通，不需要桥。Electron/Chromium 类应用在 `ozone=auto` 时通常是原生 Wayland，当它与 X11 应用（如 Java GUI 或 `xclip` 工具）之间交换剪贴板时，就需要本桥接服务。
 
 ---
 
@@ -286,6 +339,16 @@ make test       # 跑全部测试
 - [`ext-data-control-v1`](https://gitlab.freedesktop.org/wayland/wayland-protocols/-/tree/main/staging/ext-data-control) —— wayland-protocols
 - [xwayland-satellite](https://github.com/Supreeeme/xwayland-satellite) —— niri 生态下的 XWayland 管理器
 - ICCCM 2.0 中关于 `TARGETS` / `INCR` 选区的规定
+
+---
+
+## 支持与 Star History
+
+如果 `cbfix-bridge` 帮你解决了日常 X11 / XWayland 应用的剪贴板失灵问题，欢迎给项目点一颗 **⭐ [Star](https://github.com/macOS-Terminal/linux-clipboard-fix/stargazers)**，或者分享给同样使用 `niri` / `sway` / `Hyprland` 的朋友！你的每一个 Star 都是持续维护与打磨底层体验的最大动力。
+
+[![Star History Chart](https://api.star-history.com/svg?repos=macOS-Terminal/linux-clipboard-fix&type=Date)](https://star-history.com/#macOS-Terminal/linux-clipboard-fix&Date)
+
+---
 
 ## 许可
 

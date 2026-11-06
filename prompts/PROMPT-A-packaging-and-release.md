@@ -41,7 +41,7 @@
   - 包名：`cbfix-bridge`
   - 版本：`1.0.0`，Release：`1`
   - 许可证：`MIT`
-  - 描述：`Bridge the Wayland and X11 clipboard so X11 apps (HMCL, Codex CLI, ...) share the system clipboard`
+  - 描述：`Bidirectional clipboard bridge between Wayland (ext-data-control-v1) and X11 (Xwayland)`
   - 构建依赖：`gcc`、`make`、`pkg-config`（`pkgconf`）、`wayland-scanner`、`wayland-protocols`，以及 `pkg-config` 模块 `wayland-client`、`x11`、`xfixes`
   - 运行时依赖：
     - Arch：`depends=('wayland' 'libx11' 'libxfixes')`

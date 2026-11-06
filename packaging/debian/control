@@ -10,6 +10,6 @@ Description: Bidirectional clipboard bridge between Wayland and X11 (Xwayland)
  cbfix-bridge is a tiny daemon that keeps the Wayland clipboard
  (ext-data-control-v1) and the X11 CLIPBOARD selection (Xwayland) in sync,
  in both directions, for text and images, including large INCR transfers.
- It fixes X11 applications (HMCL, Codex CLI, ...) that cannot exchange
+ It fixes X11 applications running under Xwayland that cannot exchange
  clipboard content with native Wayland applications.
  It is shipped as a systemd user service.

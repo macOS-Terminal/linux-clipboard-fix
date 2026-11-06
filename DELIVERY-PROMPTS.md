@@ -18,7 +18,7 @@
 | 项 | 值 |
 |---|---|
 | 项目名 | cbfix / cbfix-bridge |
-| 作用 | 修复 Linux 上 X11 应用（HMCL、Codex CLI 等）与系统剪贴板不互通 |
+| 作用 | 修复 Linux Wayland（如 niri + xwayland-satellite）下 X11 应用与系统剪贴板不互通 |
 | 语言 | C11，单二进制，链接 `libwayland-client.so.0`、`libX11.so.6`、`libXfixes.so.3` |
 | 构建 | `make`（pkg-config: wayland-client / x11 / xfixes，需 wayland-scanner） |
 | 版本 | 1.0.0 |

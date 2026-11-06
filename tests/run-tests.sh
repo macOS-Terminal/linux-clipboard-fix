@@ -44,7 +44,7 @@ DISPLAY=${DISPLAY:-:0} setsid "$BRIDGE" > "$TMP/bridge.log" 2>&1 &
 sleep 1
 pgrep -x cbfix-bridge >/dev/null || { echo "bridge failed to start"; cat "$TMP/bridge.log"; exit 1; }
 
-echo "== X11 app (Java/AWT, the HMCL toolkit) -> Wayland =="
+echo "== X11 app (Java/AWT) -> Wayland =="
 V="java-to-system-$RANDOM"
 DISPLAY=${DISPLAY:-:0} java -cp "$TMP" X11Write "$V" >/dev/null 2>&1
 sleep 0.6; chk "text survives to wl-paste" "$V" "$(wl-paste --no-newline 2>&1)"

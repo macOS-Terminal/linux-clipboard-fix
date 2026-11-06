@@ -1,0 +1,214 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 340" width="1280" height="340" role="img" aria-label="cbfix-bridge: Wayland and X11 Xwayland Bidirectional Clipboard Bridge">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="55%" stop-color="#111722"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+
+    <linearGradient id="leftBoxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#161b2e" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#121624" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <linearGradient id="centerBoxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d2824" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#0f1f26" stop-opacity="0.96"/>
+    </linearGradient>
+
+    <linearGradient id="rightBoxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10241e" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#111c19" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <linearGradient id="coreStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="50%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#3fb950"/>
+    </linearGradient>
+
+    <filter id="coreGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#2dd4bf" flood-opacity="0.22"/>
+    </filter>
+
+    <pattern id="gridPattern" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#21262d" stroke-width="0.7" stroke-opacity="0.55"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect x="1" y="1" width="1278" height="338" rx="14" fill="url(#bgGrad)" stroke="#30363d" stroke-width="2"/>
+  <rect x="2" y="2" width="1276" height="336" rx="13" fill="url(#gridPattern)"/>
+
+  <!-- Top Header -->
+  <g transform="translate(640, 44)" text-anchor="middle">
+    <text y="0" fill="#f0f6fc" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="30" font-weight="800" letter-spacing="0.5">
+      cbfix-bridge
+      <tspan fill="#2dd4bf" font-size="16" font-weight="600" dy="-5">v1.0.0 · C11 Daemon</tspan>
+    </text>
+    <text y="29" fill="#58a6ff" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="16" font-weight="600" letter-spacing="0.3">
+      Wayland &#x2194; X11 (Xwayland) Bidirectional Clipboard Bridge
+    </text>
+    <text y="53" fill="#8b949e" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="14" font-weight="500">
+      彻底解决 Linux Wayland (xwayland-satellite) 下 X11 应用与系统剪贴板不互通
+    </text>
+  </g>
+
+  <!-- Left Column: X11 / Xwayland Apps -->
+  <g transform="translate(44, 118)">
+    <rect x="0" y="0" width="336" height="190" rx="10" fill="url(#leftBoxGrad)" stroke="#6e56cf" stroke-width="1.6"/>
+    <rect x="0" y="0" width="336" height="38" rx="10" fill="#1e1b38"/>
+    <line x1="0" y1="38" x2="336" y2="38" stroke="#6e56cf" stroke-width="1" stroke-opacity="0.6"/>
+    <circle cx="20" cy="19" r="5" fill="#a371f7"/>
+    <text x="34" y="24" fill="#d2a8ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="14" font-weight="700">
+      X11 / Xwayland Clients
+    </text>
+    <text x="320" y="24" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      CLIPBOARD / INCR
+    </text>
+
+    <!-- App Item 1 -->
+    <rect x="18" y="52" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="32" y="75" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13.5" font-weight="600">
+      X11 GUI Applications
+    </text>
+    <text x="304" y="74" text-anchor="end" fill="#a371f7" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      XSetSelectionOwner
+    </text>
+
+    <!-- App Item 2 -->
+    <rect x="18" y="96" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="32" y="119" fill="#e6edf3" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="13.5" font-weight="600">
+      CLI Clipboard Tools
+    </text>
+    <text x="304" y="118" text-anchor="end" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      xclip / xsel / Image
+    </text>
+
+    <!-- App Item 3 -->
+    <rect x="18" y="140" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="32" y="163" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13.5" font-weight="600">
+      Java AWT / Swing / OpenJFX
+    </text>
+    <text x="304" y="162" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      X11 Selection
+    </text>
+  </g>
+
+  <!-- Left <-> Center Bidirectional Connector -->
+  <g transform="translate(380, 118)">
+    <!-- Forward arrow -->
+    <line x1="8" y1="82" x2="88" y2="82" stroke="#58a6ff" stroke-width="2.2"/>
+    <polygon points="88,77 98,82 88,87" fill="#58a6ff"/>
+    <!-- Backward arrow -->
+    <line x1="98" y1="108" x2="18" y2="108" stroke="#2dd4bf" stroke-width="2.2"/>
+    <polygon points="18,103 8,108 18,113" fill="#2dd4bf"/>
+    <text x="53" y="68" text-anchor="middle" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11" font-weight="700">
+      XFixes &#x21C4;
+    </text>
+    <text x="53" y="128" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10">
+      No Focus Serial
+    </text>
+    <text x="53" y="142" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10">
+      Needed
+    </text>
+  </g>
+
+  <!-- Center Column: cbfix-bridge Core -->
+  <g transform="translate(486, 118)" filter="url(#coreGlow)">
+    <rect x="0" y="0" width="308" height="190" rx="12" fill="url(#centerBoxGrad)" stroke="url(#coreStroke)" stroke-width="2.2"/>
+    <rect x="0" y="0" width="308" height="40" rx="12" fill="#0b312d"/>
+    <line x1="0" y1="40" x2="308" y2="40" stroke="#2dd4bf" stroke-width="1.2" stroke-opacity="0.7"/>
+    <circle cx="22" cy="20" r="5.5" fill="#2dd4bf"/>
+    <text x="36" y="25" fill="#f0f6fc" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="15" font-weight="800">
+      cbfix-bridge
+    </text>
+    <text x="292" y="25" text-anchor="end" fill="#2dd4bf" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11" font-weight="700">
+      &#x21C4; Event-Driven
+    </text>
+
+    <!-- Core Feature 1 -->
+    <rect x="16" y="52" width="276" height="38" rx="6" fill="#0d1117" stroke="#238636" stroke-width="1.2"/>
+    <text x="154" y="69" text-anchor="middle" fill="#56d364" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="12.5" font-weight="700">
+      ext-data-control-v1
+    </text>
+    <text x="154" y="84" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
+      Serial-Free Wayland Clipboard Protocol
+    </text>
+
+    <!-- Core Feature 2 -->
+    <rect x="16" y="98" width="276" height="38" rx="6" fill="#0d1117" stroke="#1f6feb" stroke-width="1.2"/>
+    <text x="154" y="115" text-anchor="middle" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="12.5" font-weight="700">
+      ICCCM / INCR 64MB
+    </text>
+    <text x="154" y="130" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
+      UTF-8 · TEXT · image/png · image/bmp
+    </text>
+
+    <!-- Core Feature 3 -->
+    <rect x="16" y="144" width="276" height="34" rx="6" fill="#0b2522" stroke="#2dd4bf" stroke-width="1"/>
+    <text x="154" y="165" text-anchor="middle" fill="#2dd4bf" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="12" font-weight="700">
+      &#x21C4; No Focus Serial Needed · Loop Guard
+    </text>
+  </g>
+
+  <!-- Center <-> Right Bidirectional Connector -->
+  <g transform="translate(794, 118)">
+    <!-- Forward arrow -->
+    <line x1="8" y1="82" x2="88" y2="82" stroke="#2dd4bf" stroke-width="2.2"/>
+    <polygon points="88,77 98,82 88,87" fill="#2dd4bf"/>
+    <!-- Backward arrow -->
+    <line x1="98" y1="108" x2="18" y2="108" stroke="#3fb950" stroke-width="2.2"/>
+    <polygon points="18,103 8,108 18,113" fill="#3fb950"/>
+    <text x="53" y="68" text-anchor="middle" fill="#56d364" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11" font-weight="700">
+      &#x21C4; Pipe FD
+    </text>
+    <text x="53" y="128" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10">
+      No Focus Serial
+    </text>
+    <text x="53" y="142" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10">
+      Needed
+    </text>
+  </g>
+
+  <!-- Right Column: Wayland System Clipboard -->
+  <g transform="translate(900, 118)">
+    <rect x="0" y="0" width="336" height="190" rx="10" fill="url(#rightBoxGrad)" stroke="#2ea043" stroke-width="1.6"/>
+    <rect x="0" y="0" width="336" height="38" rx="10" fill="#122d22"/>
+    <line x1="0" y1="38" x2="336" y2="38" stroke="#2ea043" stroke-width="1" stroke-opacity="0.6"/>
+    <circle cx="20" cy="19" r="5" fill="#3fb950"/>
+    <text x="34" y="24" fill="#56d364" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="14" font-weight="700">
+      Wayland System Clipboard
+    </text>
+    <text x="320" y="24" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      wl_seat
+    </text>
+
+    <!-- Wayland Item 1 -->
+    <rect x="18" y="52" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="32" y="75" fill="#e6edf3" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="13.5" font-weight="600">
+      niri + xwayland-satellite
+    </text>
+    <text x="304" y="74" text-anchor="end" fill="#56d364" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      Rootless X11
+    </text>
+
+    <!-- Wayland Item 2 -->
+    <rect x="18" y="96" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="32" y="119" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13.5" font-weight="600">
+      sway / Hyprland / KWin
+    </text>
+    <text x="304" y="118" text-anchor="end" fill="#2dd4bf" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      Compositors
+    </text>
+
+    <!-- Wayland Item 3 -->
+    <rect x="18" y="140" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+    <text x="32" y="163" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13.5" font-weight="600">
+      Browser / ChatGPT / Terminal
+    </text>
+    <text x="304" y="162" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
+      Native Wayland
+    </text>
+  </g>
+</svg>

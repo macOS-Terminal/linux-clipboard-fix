@@ -48,7 +48,7 @@
 - 项目名：cbfix / cbfix-bridge
 - 目标仓库（视频与封面都要出现）：https://github.com/macOS-Terminal/linux-clipboard-fix
 - 一句话定位：修复 Linux 上 X11 应用与系统剪贴板不互通的问题
-- 受影响的具体应用（观众最有共鸣的钩子）：HMCL（Minecraft 启动器，JavaFX/AWT）、Codex CLI、以及其他所有跑在 XWayland 上的 X11 程序
+- 受影响的具体应用（观众最有共鸣的钩子）：跑在 XWayland 上的各类 X11 程序（Java AWT/Swing/OpenJFX 桌面程序、使用 xclip/xsel 的 CLI 工具、传统 X11 GUI 软件）
 - 典型受害环境：niri + xwayland-satellite（Wayland 桌面），装了 xclip/xsel 也没用
 - 病症：在这些应用里 Ctrl+C，系统别处粘贴不出来；系统里复制，这些应用粘贴不出来
 - 根因（要用大白话讲清）：
@@ -76,7 +76,7 @@
 
 ## 必须包含的内容（缺一不可）
 
-1. 0–10s  痛点开场：HMCL/Codex 里复制，系统粘贴为空。屏幕直接展示失败
+1. 0–10s  痛点开场：X11 应用里复制，Wayland 系统粘贴为空。屏幕直接展示失败
 2. 10–25s 病症复盘：两个方向都坏，展示 wl-paste 与 X11 侧结果不一致的真实输出
 3. 25–50s 原理图解：Wayland 的 focus serial 限制 → 后台桥为何被静默丢弃 → ext-data-control-v1 为何能绕过
 4. 50–70s 修复演示：安装命令、systemctl 启用、修复前后同一操作对比

@@ -11,7 +11,7 @@
 pkgname=cbfix-bridge
 pkgver=1.0.0
 pkgrel=1
-pkgdesc='Bridge the Wayland and X11 clipboard so X11 apps (HMCL, Codex CLI, ...) share the system clipboard'
+pkgdesc='Bidirectional clipboard bridge between Wayland (ext-data-control-v1) and X11 (Xwayland)'
 arch=('x86_64')
 url='https://github.com/macOS-Terminal/linux-clipboard-fix'
 license=('MIT')
