@@ -1,0 +1,14 @@
+# cbfix-bridge Arch scriptlet 模板。
+# 下面的标记行由 scripts/build-packages.sh 在构建时替换为
+# packaging/notice.sh 的完整内容（唯一实现，不在此重复）。
+#@CBFIX_NOTICE_SH@
+
+# 只打印提示，不调用 systemctl：pacman 以 root 运行，无法代替用户
+# 启用 systemd 用户服务；在 chroot/CI 里也不会失败。
+post_install() {
+    cbfix_notice install
+}
+
+post_upgrade() {
+    cbfix_notice upgrade
+}

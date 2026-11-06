@@ -4,7 +4,7 @@
 
 | 任务 | 文件 | 内容 |
 |---|---|---|
-| A | [prompts/PROMPT-A-packaging-and-release.md](prompts/PROMPT-A-packaging-and-release.md) | 构建 `.pkg.tar.zst` / `.rpm` / `.deb`，以 systemd 用户服务运行，安装后**高亮**提示启用命令，更新 `install.sh`，发布到 GitHub |
+| A | [prompts/PROMPT-A-packaging-and-release.md](prompts/PROMPT-A-packaging-and-release.md) | 从仓库真源码（`src/cbfix-bridge.c`）通过 `scripts/build-packages.sh all` 重新构建 `.pkg.tar.zst` / `.rpm` / `.deb`（**严禁 fixture 占位假二进制**），内联 `packaging/notice.sh` **中文简洁高亮**安装后提示并完成 6 项真实验收 |
 | B | [prompts/PROMPT-B-promo-video.md](prompts/PROMPT-B-promo-video.md) | 75–90 秒宣传视频 + **封面**（两版尺寸 + 可编辑源文件），对标 BV1MKa66VEPS 叙事结构 |
 
 ## 两份提示词的共同特征

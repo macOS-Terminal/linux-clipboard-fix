@@ -84,17 +84,26 @@ make
 | Debian/Ubuntu | `sudo apt install build-essential libwayland-dev wayland-protocols libx11-dev libxfixes-dev pkg-config` |
 | Fedora | `sudo dnf install gcc make wayland-devel wayland-protocols-devel libX11-devel libXfixes-devel pkgconf` |
 
-### 一键安装（构建 + 安装 + 启用服务）
+### 方式一：安装包（推荐）
+
+```bash
+./scripts/build-packages.sh arch     # 产出 dist/*.pkg.tar.zst（另有 rpm / deb / all）
+sudo pacman -U dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
+```
+
+RPM：`sudo dnf install ./dist/cbfix-bridge-1.0.0-1.x86_64.rpm`；Deb：`sudo apt install ./dist/cbfix-bridge_1.0.0_amd64.deb`。
+
+### 方式二：脚本安装
 
 ```bash
 ./scripts/install.sh
 ```
 
-脚本会构建二进制、安装到 `/usr/local/bin`、安装 systemd 用户单元并执行 `enable --now`，完成后验证服务确为 `active`。
+脚本会构建二进制，并把它安装到 `/usr/bin`（和安装包的路径一致），再把 systemd 用户单元装到 `~/.config/systemd/user/`。
 
-### 启用 systemd 服务
+### 启用 systemd 服务（两种方式都需要）
 
-若你自行安装了二进制，手动启用：
+安装完成后会显示一条高亮提示。用**当前用户**（不要加 sudo）执行：
 
 ```bash
 systemctl --user enable --now cbfix-bridge.service
@@ -214,6 +223,7 @@ cbfix-bridge [选项]
 
 | 症状 | 原因 | 处理 |
 |---|---|---|
+| 服务不断重启，日志反复出现 `usage: ...` 和 `status=2/INVALIDARGUMENT` | 装上的是占位二进制，没有真正的桥（`cbfix-bridge --help` 不含 `--interval`，或含 `fixture` 字样） | 用本仓库源码重新构建并安装，再执行 `systemctl --user restart cbfix-bridge.service` |
 | 启动即退：`compositor does not offer ext-data-control-v1` | 合成器过旧或不支持 | 按上文版本表升级合成器 |
 | 启动即退：`cannot connect to the Wayland compositor` | systemd 用户环境缺少 `WAYLAND_DISPLAY` | `systemctl --user import-environment WAYLAND_DISPLAY DISPLAY` 后重启服务 |
 | 启动即退：`cannot open the X display` | 无 XWayland 或 `$DISPLAY` 为空 | 确认 Xwayland 在运行且 `echo $DISPLAY` 有值 |
@@ -237,6 +247,7 @@ Wayland content     : 42 bytes (text)
 - 只桥接 `CLIPBOARD`，**不桥接 PRIMARY**（X11 的中键粘贴选区）。
 - 依赖合成器提供 `ext-data-control-v1`；GNOME/Mutter 不需要也不适用。
 - 需要在图形会话内运行；纯 TTY 或 headless 环境下无意义。
+- 只管 **X11（Xwayland）应用 ↔ Wayland** 这两个方向。原生 Wayland 应用之间由合成器直接互通，不需要桥。Electron/Chromium 类应用（如 ChatGPT 桌面端）在 `ozone=auto` 时通常是原生 Wayland，如果它和 X11 应用（如 HMCL）之间不通，就需要桥。
 
 ---
 
@@ -246,8 +257,12 @@ Wayland content     : 42 bytes (text)
 src/cbfix-bridge.c                    桥实现（C11）
 protocols/ext-data-control-v1.xml     供应商化的协议定义
 systemd/cbfix-bridge.service          systemd 用户单元
-scripts/install.sh                    构建 + 安装 + 启用（幂等，--uninstall 反转）
+scripts/install.sh                    构建 + 安装到 /usr/bin + 安装用户单元（--uninstall 反转）
 scripts/uninstall.sh                  卸载
+scripts/build-packages.sh             构建安装包：arch | rpm | deb | all → dist/
+scripts/build-rpm.sh / build-deb.sh   RPM / deb 构建实现
+packaging/notice.sh                   安装后高亮提示（唯一实现）
+packaging/PKGBUILD, cbfix-bridge.install, cbfix-bridge.spec, debian/
 tests/run-tests.sh                    功能回归（9 项）
 tests/run-bulk-tests.sh               大负载 / 并发 / 恢复
 tests/x11-read.c                      测试辅助：ICCCM 正确的 X11 读取器

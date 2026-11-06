@@ -4,7 +4,7 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=/usr/local/bin/cbfix-bridge
+ExecStart=/usr/bin/cbfix-bridge
 Restart=on-failure
 RestartSec=2
 

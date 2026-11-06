@@ -1,0 +1,51 @@
+# Maintainer: macOS-Terminal <https://github.com/macOS-Terminal>
+#
+# 从“当前仓库工作树”的真源码构建，不从网络下载。
+# 不要直接在 packaging/ 下运行 makepkg，请用：
+#     bash scripts/build-packages.sh arch
+# 该脚本会：
+#   1. 把工作树（排除 build/ dist/ .git 等）打包成 cbfix-bridge-1.0.0.tar.gz；
+#   2. 把 packaging/notice.sh 原样内联进 cbfix-bridge.install（替换标记行）；
+#   3. 在临时目录里放好本 PKGBUILD + 上述两个文件，填入真实 sha256 后运行 makepkg。
+
+pkgname=cbfix-bridge
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='Bridge the Wayland and X11 clipboard so X11 apps (HMCL, Codex CLI, ...) share the system clipboard'
+arch=('x86_64')
+url='https://github.com/macOS-Terminal/linux-clipboard-fix'
+license=('MIT')
+depends=('wayland' 'libx11' 'libxfixes')
+makedepends=('gcc' 'make' 'pkgconf' 'wayland-protocols')
+options=('!debug')
+install="${pkgname}.install"
+source=("${pkgname}-${pkgver}.tar.gz")
+# build-packages.sh 会把 SKIP 替换为本次生成的源码包的真实 sha256。
+sha256sums=('SKIP')
+
+build() {
+    cd "${pkgname}-${pkgver}"
+    # 干净构建：-B 强制重新生成协议代码并重新编译，绝不复用旧的 build/ 产物。
+    rm -rf build
+    make -B
+}
+
+package() {
+    cd "${pkgname}-${pkgver}"
+
+    make install DESTDIR="${pkgdir}" PREFIX=/usr
+
+    # unit 以仓库 systemd/ 为模板，ExecStart 强制改写为包内路径 /usr/bin。
+    # 若仓库 unit 已是 /usr/bin，这一步是无操作。
+    sed -E 's#^ExecStart=[^[:space:]]*cbfix-bridge#ExecStart=/usr/bin/cbfix-bridge#' \
+        systemd/cbfix-bridge.service > "${srcdir}/cbfix-bridge.service"
+    grep -q '^ExecStart=/usr/bin/cbfix-bridge\([[:space:]]\|$\)' "${srcdir}/cbfix-bridge.service" || {
+        echo "错误：unit 的 ExecStart 未能改写为 /usr/bin/cbfix-bridge" >&2
+        return 1
+    }
+    install -Dm644 "${srcdir}/cbfix-bridge.service" \
+        "${pkgdir}/usr/lib/systemd/user/cbfix-bridge.service"
+
+    install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    install -Dm644 LICENSE   "${pkgdir}/usr/share/doc/${pkgname}/LICENSE"
+}

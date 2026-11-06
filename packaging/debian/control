@@ -1,0 +1,15 @@
+Package: cbfix-bridge
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libwayland-client0, libx11-6, libxfixes3
+Maintainer: macOS-Terminal <chou114514chou@outlook.com>
+Homepage: https://github.com/macOS-Terminal/linux-clipboard-fix
+Description: Bidirectional clipboard bridge between Wayland and X11 (Xwayland)
+ cbfix-bridge is a tiny daemon that keeps the Wayland clipboard
+ (ext-data-control-v1) and the X11 CLIPBOARD selection (Xwayland) in sync,
+ in both directions, for text and images, including large INCR transfers.
+ It fixes X11 applications (HMCL, Codex CLI, ...) that cannot exchange
+ clipboard content with native Wayland applications.
+ It is shipped as a systemd user service.

@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+# cbfix-bridge Debian/Ubuntu postinst 模板。
+# 下面的标记行由 scripts/build-deb.sh 在构建时替换为
+# packaging/notice.sh 的完整内容（唯一实现，不在此重复）。
+#@CBFIX_NOTICE_SH@
+
+case "${1:-}" in
+    configure)
+        if command -v cbfix_notice >/dev/null 2>&1; then
+            if [ -n "${2:-}" ]; then
+                cbfix_notice upgrade || true
+            else
+                cbfix_notice install || true
+            fi
+        fi
+        ;;
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+    *)
+        ;;
+esac
+
+exit 0
