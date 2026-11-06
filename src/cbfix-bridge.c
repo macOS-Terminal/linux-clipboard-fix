@@ -20,9 +20,12 @@
 
 #define _GNU_SOURCE
 
+#include <ctype.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -46,7 +49,9 @@
 /* tunables                                                            */
 /* ------------------------------------------------------------------ */
 
+#define CBFIX_VERSION        "1.1.4"
 #define DEFAULT_INTERVAL_MS  120
+#define WAYDROID_PROBE_MS    2000
 #define MAX_PAYLOAD          (64u * 1024u * 1024u)
 #define DIRECT_PROP_LIMIT    0x3FFFFu   /* stay below the X11 request limit */
 #define INCR_CHUNK           0x20000u
@@ -221,8 +226,96 @@ static struct {
 	struct outbox *out;
 	bool  running, configured;
 	int   interval_ms;
-	int   stat_x2wl, stat_wl2x;
+	int   stat_x2wl, stat_wl2x, stat_wd2host, stat_host2wd;
 } st;
+
+/* ------------------------------------------------------------------ */
+/* Waydroid binder clipboard bridge (dynamic via libgbinder.so.1)      */
+/* ------------------------------------------------------------------ */
+
+#define WAYDROID_CFG_PATH          "/var/lib/waydroid/waydroid.cfg"
+#define WAYDROID_CLIPBOARD_IFACE   "lineageos.waydroid.IClipboard"
+#define WAYDROID_CLIPBOARD_SERVICE "waydroidclipboard"
+#define TRANSACTION_sendClipboardData 1u
+#define TRANSACTION_getClipboardData  2u
+#define GBINDER_TX_FLAG_ONEWAY     0x01u
+#define GBINDER_STATUS_OK          0
+#define GBINDER_STATUS_FAILED      1
+
+typedef struct gbinder_servicemanager GBinderServiceManager;
+typedef struct gbinder_local_object   GBinderLocalObject;
+typedef struct gbinder_remote_request GBinderRemoteRequest;
+typedef struct gbinder_local_reply    GBinderLocalReply;
+typedef struct gbinder_reader {
+	const void *d[6];
+} GBinderReader;
+
+typedef GBinderLocalReply *(*GBinderLocalTransactFunc)(
+	GBinderLocalObject   *obj,
+	GBinderRemoteRequest *req,
+	unsigned int          code,
+	unsigned int          flags,
+	int                  *status,
+	void                 *user_data);
+
+static struct {
+	bool            disabled;
+	bool            inited;
+	bool            dl_ok;
+	bool            has_cfg_file;
+	bool            registered;
+	const char     *cli_dev;
+	char            cfg_dev[128];
+	char            active_dev[128];
+	char            binder_proto[32];
+	char            sm_proto[32];
+	struct timespec next_probe;
+
+	void                  *dl_gbinder;
+	void                  *dl_glib;
+	GBinderServiceManager *sm;
+	GBinderLocalObject    *obj;
+
+	/* libgbinder.so.1 symbols */
+	GBinderServiceManager *(*sm_new)(const char *dev);
+	GBinderServiceManager *(*sm_new2)(const char *dev, const char *sm_proto,
+	                                  const char *rpc_proto);
+	void                   (*sm_unref)(GBinderServiceManager *sm);
+	int                    (*sm_is_present)(GBinderServiceManager *sm);
+	GBinderLocalObject    *(*sm_new_local_object)(GBinderServiceManager *sm,
+	                                              const char *iface,
+	                                              GBinderLocalTransactFunc fn,
+	                                              void *user_data);
+	int                    (*sm_add_service_sync)(GBinderServiceManager *sm,
+	                                              const char *name,
+	                                              GBinderLocalObject *obj);
+	void                   (*obj_unref)(GBinderLocalObject *obj);
+	void                   (*obj_drop)(GBinderLocalObject *obj);
+	GBinderLocalReply     *(*obj_new_reply)(GBinderLocalObject *obj);
+	void                   (*req_init_reader)(GBinderRemoteRequest *req,
+	                                          GBinderReader *reader);
+	char                  *(*reader_read_string16)(GBinderReader *reader);
+	GBinderLocalReply     *(*reply_append_int32)(GBinderLocalReply *reply,
+	                                             uint32_t val);
+	GBinderLocalReply     *(*reply_append_string16)(GBinderLocalReply *reply,
+	                                                const char *utf8);
+
+	/* libglib-2.0.so.0 symbols */
+	int  (*g_main_context_iteration)(void *ctx, int may_block);
+	void (*g_free)(void *ptr);
+
+	/* Thread-safe clipboard buffers shared with binder callbacks */
+	pthread_mutex_t lock;
+	int             wake_pipe[2];
+	char           *incoming_text;
+	size_t          incoming_len;
+	bool            incoming_dirty;
+	char           *host_text;
+	size_t          host_len;
+} wd = {
+	.lock      = PTHREAD_MUTEX_INITIALIZER,
+	.wake_pipe = { -1, -1 },
+};
 
 static void pump_outbox(void);
 static void x_serve_request(XSelectionRequestEvent *rq, const struct buf *b);
@@ -1086,6 +1179,413 @@ static const struct wl_registry_listener reg_listener = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Waydroid binder implementation                                      */
+/* ------------------------------------------------------------------ */
+
+static char *str_trim(char *s)
+{
+	while (*s && isspace((unsigned char)*s))
+		s++;
+	char *end = s + strlen(s);
+	while (end > s && isspace((unsigned char)end[-1]))
+		*--end = '\0';
+	return s;
+}
+
+static void waydroid_parse_cfg(void)
+{
+	snprintf(wd.cfg_dev, sizeof(wd.cfg_dev), "/dev/binder");
+	snprintf(wd.binder_proto, sizeof(wd.binder_proto), "aidl3");
+	snprintf(wd.sm_proto, sizeof(wd.sm_proto), "aidl6");
+	wd.has_cfg_file = false;
+
+	FILE *fp = fopen(WAYDROID_CFG_PATH, "r");
+	if (fp) {
+		wd.has_cfg_file = true;
+		char line[256];
+		while (fgets(line, sizeof(line), fp)) {
+			char *s = str_trim(line);
+			if (*s == '\0' || *s == '#' || *s == ';' || *s == '[')
+				continue;
+			char *eq = strchr(s, '=');
+			if (!eq)
+				continue;
+			*eq = '\0';
+			char *key = str_trim(s);
+			char *val = str_trim(eq + 1);
+			if (*val == '\0')
+				continue;
+			if (strcmp(key, "binder") == 0) {
+				if (val[0] == '/')
+					snprintf(wd.cfg_dev, sizeof(wd.cfg_dev), "%s", val);
+				else
+					snprintf(wd.cfg_dev, sizeof(wd.cfg_dev), "/dev/%s", val);
+			} else if (strcmp(key, "binder_protocol") == 0) {
+				snprintf(wd.binder_proto, sizeof(wd.binder_proto), "%s", val);
+			} else if (strcmp(key, "service_manager_protocol") == 0) {
+				snprintf(wd.sm_proto, sizeof(wd.sm_proto), "%s", val);
+			}
+		}
+		fclose(fp);
+	}
+
+	if (wd.cli_dev && wd.cli_dev[0]) {
+		if (wd.cli_dev[0] == '/')
+			snprintf(wd.cfg_dev, sizeof(wd.cfg_dev), "%s", wd.cli_dev);
+		else
+			snprintf(wd.cfg_dev, sizeof(wd.cfg_dev), "/dev/%s", wd.cli_dev);
+	}
+}
+
+static void waydroid_update_host_text(const void *data, size_t len, const char *mime)
+{
+	if (wd.disabled)
+		return;
+	char *copy = NULL;
+	size_t clen = 0;
+	if (mime_is_text(mime) && data && len > 0) {
+		copy = malloc(len + 1);
+		if (copy) {
+			memcpy(copy, data, len);
+			copy[len] = '\0';
+			clen = len;
+		}
+	}
+	if (!copy)
+		copy = strdup("");
+
+	pthread_mutex_lock(&wd.lock);
+	free(wd.host_text);
+	wd.host_text = copy;
+	wd.host_len = clen;
+	pthread_mutex_unlock(&wd.lock);
+}
+
+static GBinderLocalReply *waydroid_tx_handler(GBinderLocalObject *obj,
+                                              GBinderRemoteRequest *req,
+                                              unsigned int code,
+                                              unsigned int flags,
+                                              int *status,
+                                              void *user_data)
+{
+	(void)user_data;
+	if (code == TRANSACTION_sendClipboardData) {
+		GBinderReader reader;
+		memset(&reader, 0, sizeof(reader));
+		wd.req_init_reader(req, &reader);
+		char *str = wd.reader_read_string16(&reader);
+		if (str) {
+			size_t slen = strlen(str);
+			char *inc = malloc(slen + 1);
+			char *hst = malloc(slen + 1);
+			if (inc && hst) {
+				memcpy(inc, str, slen + 1);
+				memcpy(hst, str, slen + 1);
+				pthread_mutex_lock(&wd.lock);
+				free(wd.incoming_text);
+				wd.incoming_text = inc;
+				wd.incoming_len = slen;
+				wd.incoming_dirty = true;
+				free(wd.host_text);
+				wd.host_text = hst;
+				wd.host_len = slen;
+				if (wd.wake_pipe[1] >= 0) {
+					char c = 'w';
+					ssize_t r = write(wd.wake_pipe[1], &c, 1);
+					(void)r;
+				}
+				pthread_mutex_unlock(&wd.lock);
+			} else {
+				free(inc);
+				free(hst);
+			}
+			if (wd.g_free)
+				wd.g_free(str);
+			else
+				free(str);
+		}
+		if (status)
+			*status = GBINDER_STATUS_OK;
+		if (flags & GBINDER_TX_FLAG_ONEWAY)
+			return NULL;
+		GBinderLocalReply *reply = wd.obj_new_reply(obj);
+		if (reply)
+			wd.reply_append_int32(reply, 0);
+		return reply;
+	}
+
+	if (code == TRANSACTION_getClipboardData) {
+		if (status)
+			*status = GBINDER_STATUS_OK;
+		if (flags & GBINDER_TX_FLAG_ONEWAY)
+			return NULL;
+		GBinderLocalReply *reply = wd.obj_new_reply(obj);
+		if (reply) {
+			pthread_mutex_lock(&wd.lock);
+			wd.reply_append_int32(reply, 0);
+			wd.reply_append_string16(reply, wd.host_text ? wd.host_text : "");
+			st.stat_host2wd++;
+			pthread_mutex_unlock(&wd.lock);
+		}
+		return reply;
+	}
+
+	if (status)
+		*status = -99999;
+	return NULL;
+}
+
+static void waydroid_drop_conn(void)
+{
+	if (wd.obj) {
+		if (wd.obj_drop)
+			wd.obj_drop(wd.obj);
+		else if (wd.obj_unref)
+			wd.obj_unref(wd.obj);
+		wd.obj = NULL;
+	}
+	if (wd.sm) {
+		if (wd.sm_unref)
+			wd.sm_unref(wd.sm);
+		wd.sm = NULL;
+	}
+	wd.registered = false;
+	wd.active_dev[0] = '\0';
+}
+
+static bool waydroid_try_device(const char *dev)
+{
+	if (!dev || !dev[0] || access(dev, R_OK | W_OK) != 0)
+		return false;
+
+	GBinderServiceManager *sm = NULL;
+	if (wd.sm_new2)
+		sm = wd.sm_new2(dev, wd.sm_proto, wd.binder_proto);
+	if (!sm && wd.sm_new2)
+		sm = wd.sm_new2(dev, wd.binder_proto, wd.sm_proto);
+	if (!sm && wd.sm_new)
+		sm = wd.sm_new(dev);
+	if (!sm)
+		return false;
+
+	if (!wd.sm_is_present(sm)) {
+		wd.sm_unref(sm);
+		return false;
+	}
+
+	GBinderLocalObject *obj = wd.sm_new_local_object(
+		sm, WAYDROID_CLIPBOARD_IFACE, waydroid_tx_handler, NULL);
+	if (!obj) {
+		wd.sm_unref(sm);
+		return false;
+	}
+
+	int rc = wd.sm_add_service_sync(sm, WAYDROID_CLIPBOARD_SERVICE, obj);
+	if (rc != 0) {
+		DBG("waydroid add_service_sync(%s) on %s failed (rc=%d)",
+		    WAYDROID_CLIPBOARD_SERVICE, dev, rc);
+		if (wd.obj_drop)
+			wd.obj_drop(obj);
+		else
+			wd.obj_unref(obj);
+		wd.sm_unref(sm);
+		return false;
+	}
+
+	wd.sm = sm;
+	wd.obj = obj;
+	wd.registered = true;
+	snprintf(wd.active_dev, sizeof(wd.active_dev), "%s", dev);
+	INFO("Waydroid binder service '%s' registered on %s",
+	     WAYDROID_CLIPBOARD_SERVICE, dev);
+	return true;
+}
+
+static bool waydroid_try_connect(void)
+{
+	if (wd.disabled || !wd.dl_ok)
+		return false;
+
+	if (wd.registered && wd.sm) {
+		if (access(wd.active_dev, R_OK | W_OK) == 0 &&
+		    wd.sm_is_present(wd.sm))
+			return true;
+		INFO("Waydroid binder service on %s disconnected; waiting for container",
+		     wd.active_dev);
+		waydroid_drop_conn();
+	}
+
+	waydroid_parse_cfg();
+
+	if (wd.cli_dev && wd.cli_dev[0])
+		return waydroid_try_device(wd.cfg_dev);
+
+	const char *cands[] = {
+		wd.cfg_dev,
+		"/dev/binder",
+		"/dev/anbox-binder",
+		"/dev/binderfs/binder",
+		"/dev/binderfs/anbox-binder",
+	};
+	for (size_t i = 0; i < sizeof(cands) / sizeof(cands[0]); i++) {
+		bool dup = false;
+		for (size_t j = 0; j < i; j++) {
+			if (strcmp(cands[i], cands[j]) == 0) {
+				dup = true;
+				break;
+			}
+		}
+		if (!dup && waydroid_try_device(cands[i]))
+			return true;
+	}
+	return false;
+}
+
+static void waydroid_init(void)
+{
+	if (wd.inited)
+		return;
+	wd.inited = true;
+	waydroid_parse_cfg();
+
+	if (wd.disabled)
+		return;
+
+	if (pipe(wd.wake_pipe) == 0) {
+		for (int i = 0; i < 2; i++) {
+			fcntl(wd.wake_pipe[i], F_SETFL,
+			      fcntl(wd.wake_pipe[i], F_GETFL) | O_NONBLOCK);
+			fcntl(wd.wake_pipe[i], F_SETFD, FD_CLOEXEC);
+		}
+	}
+	wd.host_text = strdup("");
+	wd.host_len = 0;
+
+	wd.dl_glib = dlopen("libglib-2.0.so.0", RTLD_LAZY | RTLD_LOCAL);
+	if (wd.dl_glib) {
+		*(void **)(&wd.g_main_context_iteration) =
+			dlsym(wd.dl_glib, "g_main_context_iteration");
+		*(void **)(&wd.g_free) = dlsym(wd.dl_glib, "g_free");
+	}
+
+	wd.dl_gbinder = dlopen("libgbinder.so.1", RTLD_LAZY | RTLD_LOCAL);
+	if (!wd.dl_gbinder) {
+		DBG("libgbinder.so.1 not installed; Waydroid bridge inactive");
+		return;
+	}
+
+	*(void **)(&wd.sm_new) =
+		dlsym(wd.dl_gbinder, "gbinder_servicemanager_new");
+	*(void **)(&wd.sm_new2) =
+		dlsym(wd.dl_gbinder, "gbinder_servicemanager_new2");
+	*(void **)(&wd.sm_unref) =
+		dlsym(wd.dl_gbinder, "gbinder_servicemanager_unref");
+	*(void **)(&wd.sm_is_present) =
+		dlsym(wd.dl_gbinder, "gbinder_servicemanager_is_present");
+	*(void **)(&wd.sm_new_local_object) =
+		dlsym(wd.dl_gbinder, "gbinder_servicemanager_new_local_object");
+	*(void **)(&wd.sm_add_service_sync) =
+		dlsym(wd.dl_gbinder, "gbinder_servicemanager_add_service_sync");
+	*(void **)(&wd.obj_unref) =
+		dlsym(wd.dl_gbinder, "gbinder_local_object_unref");
+	*(void **)(&wd.obj_drop) =
+		dlsym(wd.dl_gbinder, "gbinder_local_object_drop");
+	*(void **)(&wd.obj_new_reply) =
+		dlsym(wd.dl_gbinder, "gbinder_local_object_new_reply");
+	*(void **)(&wd.req_init_reader) =
+		dlsym(wd.dl_gbinder, "gbinder_remote_request_init_reader");
+	*(void **)(&wd.reader_read_string16) =
+		dlsym(wd.dl_gbinder, "gbinder_reader_read_string16");
+	*(void **)(&wd.reply_append_int32) =
+		dlsym(wd.dl_gbinder, "gbinder_local_reply_append_int32");
+	*(void **)(&wd.reply_append_string16) =
+		dlsym(wd.dl_gbinder, "gbinder_local_reply_append_string16");
+
+	if ((wd.sm_new || wd.sm_new2) && wd.sm_unref && wd.sm_is_present &&
+	    wd.sm_new_local_object && wd.sm_add_service_sync && wd.obj_unref &&
+	    wd.obj_new_reply && wd.req_init_reader && wd.reader_read_string16 &&
+	    wd.reply_append_int32 && wd.reply_append_string16) {
+		wd.dl_ok = true;
+		deadline_set(&wd.next_probe, WAYDROID_PROBE_MS);
+		waydroid_try_connect();
+	} else {
+		WARN("libgbinder.so.1 missing expected symbols; disabling Waydroid support");
+	}
+}
+
+static void waydroid_drain_incoming(void)
+{
+	if (wd.disabled || !wd.dl_ok)
+		return;
+
+	if (wd.wake_pipe[0] >= 0) {
+		char tmp[64];
+		while (read(wd.wake_pipe[0], tmp, sizeof(tmp)) > 0) {}
+	}
+
+	char *text = NULL;
+	size_t len = 0;
+	pthread_mutex_lock(&wd.lock);
+	if (wd.incoming_dirty) {
+		text = wd.incoming_text;
+		len = wd.incoming_len;
+		wd.incoming_text = NULL;
+		wd.incoming_len = 0;
+		wd.incoming_dirty = false;
+	}
+	pthread_mutex_unlock(&wd.lock);
+
+	if (!text)
+		return;
+
+	if (len > 0 && len <= MAX_PAYLOAD) {
+		uint64_t h = hash_of(text, len);
+		if (!(st.have_pushed && h == st.pushed_hash)) {
+			buf_set(&st.serve_wl, text, len, "text/plain;charset=utf-8", h);
+			buf_set(&st.serve_x, text, len, "text/plain;charset=utf-8", h);
+			wl_publish();
+			x_claim();
+			st.tracked_owner = st.win;
+			st.pushed_hash = h;
+			st.have_pushed = true;
+			st.stat_wd2host++;
+			INFO("Waydroid -> Host : %zu bytes (text)", len);
+		}
+	}
+	free(text);
+}
+
+static void waydroid_step(void)
+{
+	if (wd.disabled || !wd.dl_ok)
+		return;
+	if (wd.g_main_context_iteration) {
+		while (wd.g_main_context_iteration(NULL, 0)) {}
+	}
+	if (ms_until(&wd.next_probe) <= 0) {
+		deadline_set(&wd.next_probe, WAYDROID_PROBE_MS);
+		waydroid_try_connect();
+	}
+	waydroid_drain_incoming();
+}
+
+static void waydroid_cleanup(void)
+{
+	waydroid_drop_conn();
+	if (wd.wake_pipe[0] >= 0) { close(wd.wake_pipe[0]); wd.wake_pipe[0] = -1; }
+	if (wd.wake_pipe[1] >= 0) { close(wd.wake_pipe[1]); wd.wake_pipe[1] = -1; }
+	pthread_mutex_lock(&wd.lock);
+	free(wd.incoming_text);
+	wd.incoming_text = NULL;
+	wd.incoming_len = 0;
+	wd.incoming_dirty = false;
+	free(wd.host_text);
+	wd.host_text = NULL;
+	wd.host_len = 0;
+	pthread_mutex_unlock(&wd.lock);
+}
+
+/* ------------------------------------------------------------------ */
 /* setup                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -1215,7 +1715,9 @@ static void cleanup(void)
 	mimes_free(&st.pending_mimes, &st.n_pending_mimes);
 	buf_clear(&st.serve_x);
 	buf_clear(&st.serve_wl);
-	INFO("stopped (%d X11->WL, %d WL->X11)", st.stat_x2wl, st.stat_wl2x);
+	waydroid_cleanup();
+	INFO("stopped (%d X11->WL, %d WL->X11, %d WD->Host)",
+	     st.stat_x2wl, st.stat_wl2x, st.stat_wd2host);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1295,6 +1797,7 @@ static void sync_pass(void)
 					buf_set(&st.serve_wl, got.data, got.len,
 					        got.mime, got.hash);
 					wl_publish();
+					waydroid_update_host_text(got.data, got.len, got.mime);
 					st.pushed_hash = got.hash;
 					st.have_pushed = true;
 					st.stat_x2wl++;
@@ -1325,6 +1828,7 @@ static void sync_pass(void)
 				buf_set(&st.serve_x, got.data, got.len,
 				        got.mime, got.hash);
 				x_claim();
+				waydroid_update_host_text(got.data, got.len, got.mime);
 				st.tracked_owner = st.win;
 				st.pushed_hash = got.hash;
 				st.have_pushed = true;
@@ -1444,6 +1948,16 @@ static int selftest(void)
 	printf("  [%s] X11 second client reads our selection\n", b ? " OK " : "FAIL");
 	if (!b) fails++;
 
+	waydroid_init();
+	const char *wdev = wd.active_dev[0] ? wd.active_dev :
+	                   (wd.cfg_dev[0] ? wd.cfg_dev : "/dev/binder");
+	printf("  [ OK ] Waydroid binder support (%s, dev=%s)\n",
+	       wd.disabled ? "disabled" :
+	       (wd.dl_ok ? (wd.registered ? "connected" : "standby, libgbinder loaded") :
+	                   "optional libgbinder.so.1 not installed"),
+	       wdev);
+	waydroid_cleanup();
+
 	printf("%s\n", fails ? "SELFTEST FAILED" : "selftest passed");
 	return fails ? 1 : 0;
 }
@@ -1471,7 +1985,20 @@ static int status_cmd(void)
 		       mime_is_text(b.mime) ? "text" : "image");
 	else
 		printf("Wayland content     : (unreadable)\n");
+
+	waydroid_init();
+	if (b.len > 0)
+		waydroid_update_host_text(b.data, b.len, b.mime);
 	buf_clear(&b);
+	const char *wdev = wd.active_dev[0] ? wd.active_dev :
+	                   (wd.cfg_dev[0] ? wd.cfg_dev : "/dev/binder");
+	printf("Waydroid binder     : %s (device %s)\n",
+	       wd.disabled ? "disabled" :
+	       (wd.dl_ok ? (wd.registered ? "connected (waydroidclipboard registered)" :
+	                                    "standby (libgbinder ready, waiting for container)") :
+	                   "inactive (libgbinder.so.1 not installed)"),
+	       wdev);
+	waydroid_cleanup();
 	return 0;
 }
 
@@ -1481,12 +2008,16 @@ static int status_cmd(void)
 
 static void usage(const char *argv0)
 {
-	printf("Usage: %s [options]\n"
-	       "  --interval MS   fallback X11 owner polling interval (default %d)\n"
-	       "  --verbose, -v   verbose logging\n"
-	       "  --selftest      check the environment and exit\n"
-	       "  --status        print the current clipboard state and exit\n"
-	       "  --help, -h      show this help\n",
+	printf("cbfix-bridge 1.1.4\n"
+	       "Usage: %s [options]\n"
+	       "  --interval MS         fallback X11 owner polling interval (default %d)\n"
+	       "  --no-waydroid         disable Waydroid binder clipboard integration\n"
+	       "  --waydroid-device DEV override Waydroid binder device (default from waydroid.cfg or /dev/binder)\n"
+	       "  --verbose, -v         verbose logging\n"
+	       "  --selftest            check the environment and exit\n"
+	       "  --status              print the current clipboard state and exit\n"
+	       "  --version, -V         print version and exit\n"
+	       "  --help, -h            show this help\n",
 	       argv0, DEFAULT_INTERVAL_MS);
 }
 
@@ -1508,10 +2039,17 @@ int main(int argc, char **argv)
 			st.interval_ms = atoi(argv[++i]);
 			if (st.interval_ms < 20)
 				st.interval_ms = 20;
+		} else if (!strcmp(argv[i], "--no-waydroid")) {
+			wd.disabled = true;
+		} else if (!strcmp(argv[i], "--waydroid-device") && i + 1 < argc) {
+			wd.cli_dev = argv[++i];
 		} else if (!strcmp(argv[i], "--selftest")) {
 			do_selftest = true;
 		} else if (!strcmp(argv[i], "--status")) {
 			do_status = true;
+		} else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-V")) {
+			printf("cbfix-bridge 1.1.4\n");
+			return 0;
 		} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
 			usage(argv[0]);
 			return 0;
@@ -1534,6 +2072,7 @@ int main(int argc, char **argv)
 	signal(SIGTERM, on_signal);
 	signal(SIGPIPE, SIG_IGN);
 	st.running = true;
+	waydroid_init();
 
 	INFO("bridge running (poll interval %d ms)", st.interval_ms);
 
@@ -1543,6 +2082,7 @@ int main(int argc, char **argv)
 	/* Adopt the Wayland clipboard first so the X11 echo check is armed. */
 	st.wl_sel_dirty = true;
 	sync_pass();
+	waydroid_step();
 
 	while (st.running) {
 		/* Drain FIRST, poll second.  sync_pass() makes synchronous
@@ -1559,6 +2099,15 @@ int main(int argc, char **argv)
 		int nf = 0;
 		fds[nf].fd = wlfd; fds[nf].events = POLLIN; fds[nf].revents = 0; nf++;
 		fds[nf].fd = xfd;  fds[nf].events = POLLIN; fds[nf].revents = 0; nf++;
+		int wdfd_idx = -1;
+		if (!wd.disabled && wd.wake_pipe[0] >= 0 && nf < 64) {
+			wdfd_idx = nf;
+			fds[nf].fd = wd.wake_pipe[0];
+			fds[nf].events = POLLIN;
+			fds[nf].revents = 0;
+			nf++;
+		}
+		(void)wdfd_idx;
 		for (struct outbox *o = st.out; o && nf < 64; o = o->next) {
 			fds[nf].fd = o->fd;
 			fds[nf].events = POLLOUT;
@@ -1595,6 +2144,7 @@ int main(int argc, char **argv)
 		pump_outbox();
 		incr_recover();
 		sync_pass();
+		waydroid_step();
 	}
 
 	cleanup();

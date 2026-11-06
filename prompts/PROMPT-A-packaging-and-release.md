@@ -6,9 +6,9 @@
 ## 适用于
 
 - 从已上传真源码与打包脚本的仓库（`https://github.com/macOS-Terminal/linux-clipboard-fix` 或本地 `/mnt/60CC4C56CC4C289C/Projects/linux-clipboard-fix`）重新构建三种 Linux 安装包：
-  1. `dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst` (Arch Linux)
-  2. `dist/cbfix-bridge-1.0.0-1.x86_64.rpm` (Fedora / RHEL / openSUSE)
-  3. `dist/cbfix-bridge_1.0.0_amd64.deb` (Debian / Ubuntu)
+  1. `dist/cbfix-bridge-1.1.4-1-x86_64.pkg.tar.zst` (Arch Linux)
+  2. `dist/cbfix-bridge-1.1.4-1.x86_64.rpm` (Fedora / RHEL / openSUSE)
+  3. `dist/cbfix-bridge_1.1.4_amd64.deb` (Debian / Ubuntu)
 - **彻底杜绝 `fixture` 占位假二进制**：必须由 `src/cbfix-bridge.c` + `protocols/ext-data-control-v1.xml` 经 `wayland-scanner` 与 `gcc` 真实编译
 - **中文、简洁、ANSI 高亮安装提示**（对标 `shorin-pac` 的 pacman 安装提示风格，唯一实现位于 `packaging/notice.sh`）
 
@@ -18,16 +18,17 @@
 ## 🚨 血泪教训 / 最高优先级红线警告（必读！）
 
 1. **严禁编写、生成或使用任何 stub / fixture / 占位假二进制！**
-   - 之前一次构建中，某 AI 自己编造了一个只会打印 `cbfix-bridge 1.0.0 (fixture)`、无参数启动直接打印 `usage` 并 `exit 2` 的假 C 程序塞进安装包，导致用户安装并启用 systemd 服务后，`cbfix-bridge.service` 死循环崩溃重启 370+ 次，剪贴板完全无法工作！
+   - 之前一次构建中，某 AI 自己编造了一个只会打印 `cbfix-bridge (fixture)`、无参数启动直接打印 `usage` 并 `exit 2` 的假 C 程序塞进安装包，导致用户安装并启用 systemd 服务后，`cbfix-bridge.service` 死循环崩溃重启 370+ 次，剪贴板完全无法工作！
 2. **必须 100% 从仓库真实源码完整编译：**
-   - 必须使用仓库内的真实源码 `src/cbfix-bridge.c`（约 1600 行 C11 守护进程源码）+ `protocols/ext-data-control-v1.xml`，通过 `wayland-scanner`（生成 `ext-data-control-v1-client-protocol.h/.c`）与 `gcc`（`make -B`）完整编译出 `build/cbfix-bridge`。
+   - 必须使用仓库内的真实源码 `src/cbfix-bridge.c`（C11 守护进程源码，含 Wayland `ext-data-control-v1`、X11 `INCR` 与 Waydroid `libgbinder` 动态加载三方桥接实现）+ `protocols/ext-data-control-v1.xml`，通过 `wayland-scanner`（生成 `ext-data-control-v1-client-protocol.h/.c`）与 `gcc`（`make -B`）完整编译出 `build/cbfix-bridge`。
    - 若你克隆下来的目录里没有 `src/cbfix-bridge.c` 或行数不对，请立即报错停止，**绝对不允许自己写一个占位 C 文件顶替**！
 3. **真二进制硬性特征（构建脚本与验收必须逐项核验）：**
    - 包内 `/usr/bin/cbfix-bridge` 体积约 **100KB+**（绝非十几 KB 的空壳）。
-   - `ldd /usr/bin/cbfix-bridge` 必须动态链接 `libwayland-client.so.0`、`libX11.so.6`、`libXfixes.so.3`。
-   - `/usr/bin/cbfix-bridge --help` 输出必须包含 `--interval MS` 与 `--verbose, -v`（以及 `--selftest`、`--status`；注意真二进制**没有** `--version` 参数）。
+   - `ldd /usr/bin/cbfix-bridge` 必须动态链接 `libwayland-client.so.0`、`libX11.so.6`、`libXfixes.so.3`（Waydroid 的 `libgbinder.so.1` 通过 `dlopen` 在运行时按需动态加载，无硬性编译期/安装期强绑）。
+   - `/usr/bin/cbfix-bridge --help` 输出必须包含 `--interval MS`、`--no-waydroid`、`--waydroid-device`、`--verbose, -v`、`--selftest`、`--status`、`--version`。
+   - `/usr/bin/cbfix-bridge --version` 输出 `cbfix-bridge 1.1.4`。
    - `strings /usr/bin/cbfix-bridge | grep -i fixture` **必须为空**（退出码非 0）。
-   - 无参数启动 `/usr/bin/cbfix-bridge` 时会进入 Wayland/X11 剪贴板桥接守护模式，**绝不会**打印 `usage` 并以退出码 `2` 退出。
+   - 无参数启动 `/usr/bin/cbfix-bridge` 时会进入 Wayland/X11/Waydroid 剪贴板桥接守护模式，**绝不会**打印 `usage` 并以退出码 `2` 退出。
 
 ---
 
@@ -39,12 +40,12 @@
 - **本地工作树路径**（若在同机执行）：`/mnt/60CC4C56CC4C289C/Projects/linux-clipboard-fix`
 - **基础元数据**：
   - 包名：`cbfix-bridge`
-  - 版本：`1.0.0`，Release：`1`
+  - 版本：`1.1.4`，Release：`1`
   - 许可证：`MIT`
-  - 描述：`Bidirectional clipboard bridge between Wayland (ext-data-control-v1) and X11 (Xwayland)`
+  - 描述：`Three-way clipboard bridge between Wayland (ext-data-control-v1), X11 (Xwayland), and Waydroid (Android Binder)`
   - 构建依赖：`gcc`、`make`、`pkg-config`（`pkgconf`）、`wayland-scanner`、`wayland-protocols`，以及 `pkg-config` 模块 `wayland-client`、`x11`、`xfixes`
   - 运行时依赖：
-    - Arch：`depends=('wayland' 'libx11' 'libxfixes')`
+    - Arch：`depends=('wayland' 'libx11' 'libxfixes')`，`optdepends=('libgbinder: Waydroid Android container clipboard sync')`
     - RPM：`libwayland-client.so.0()(64bit)`、`libX11.so.6()(64bit)`、`libXfixes.so.3()(64bit)`（由 `rpmbuild` 自动扫描 ELF 生成）
     - Deb：`Depends: libwayland-client0, libx11-6, libxfixes3`
 
@@ -54,7 +55,7 @@
 
 仓库已包含完整真源码、systemd 用户单元与打包脚本：
 
-- `src/cbfix-bridge.c`：真实 C11 双向剪贴板桥接守护进程源码（支持文本、图片、大体积 INCR 增量传输）
+- `src/cbfix-bridge.c`：真实 C11 三方剪贴板桥接守护进程源码（支持 Wayland ⇄ X11 ⇄ Waydroid，含文本、图片、大体积 INCR 增量传输与 `libgbinder` 运行时按需加载）
 - `protocols/ext-data-control-v1.xml`：Wayland `ext-data-control-v1` 协议定义
 - `Makefile`：`make -B` 调 `wayland-scanner` + `cc` 产出 `build/cbfix-bridge`；`make install DESTDIR=... PREFIX=/usr` 安装到 `/usr/bin/cbfix-bridge`
 - `systemd/cbfix-bridge.service`：systemd 用户级服务单元（`ExecStart=/usr/bin/cbfix-bridge`）
@@ -66,11 +67,11 @@
 - `scripts/build-packages.sh`：一键打包入口，支持 `arch | rpm | deb | all` 以及 `arch --notice-only`（调用 `scripts/build-rpm.sh` 与 `scripts/build-deb.sh`）
 
 ### 构建步骤
-1. 克隆或拉取最新 `https://github.com/macOS-Terminal/linux-clipboard-fix`（或直接使用本地 `/mnt/60CC4C56CC4C289C/Projects/linux-clipboard-fix`），先确认 `src/cbfix-bridge.c` 为约 1600 行真实源码。
+1. 克隆或拉取最新 `https://github.com/macOS-Terminal/linux-clipboard-fix`（或直接使用本地 `/mnt/60CC4C56CC4C289C/Projects/linux-clipboard-fix`），先确认 `src/cbfix-bridge.c` 为真实源码。
 2. 直接使用或完善 `bash scripts/build-packages.sh all`，从干净状态（`make -B`，绝不复用不明旧产物）构建出以下三个安装包：
-   1. `dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst` (Arch Linux)
-   2. `dist/cbfix-bridge-1.0.0-1.x86_64.rpm` (Fedora / RHEL / openSUSE)
-   3. `dist/cbfix-bridge_1.0.0_amd64.deb` (Debian / Ubuntu)
+   1. `dist/cbfix-bridge-1.1.4-1-x86_64.pkg.tar.zst` (Arch Linux)
+   2. `dist/cbfix-bridge-1.1.4-1.x86_64.rpm` (Fedora / RHEL / openSUSE)
+   3. `dist/cbfix-bridge_1.1.4_amd64.deb` (Debian / Ubuntu)
 3. **三个包内布局必须完全统一**：
    - `/usr/bin/cbfix-bridge`（权限 `0755`，真编译二进制）
    - `/usr/lib/systemd/user/cbfix-bridge.service`（权限 `0644`，`ExecStart=/usr/bin/cbfix-bridge`）
@@ -116,7 +117,7 @@
    贴出三个包的文件列表真实输出（如 `bsdtar -tvf`、`rpm -qplv`、`dpkg-deb -c` 或 `ar`/`tar`），证明 `/usr/bin/cbfix-bridge` (0755)、`/usr/lib/systemd/user/cbfix-bridge.service` (0644)、`/usr/share/doc/cbfix-bridge/{README.md,LICENSE}` (0644) 全部就位。
 3. **真二进制铁证（拒绝假二进制）**：
    分别从三个包中解出 `/usr/bin/cbfix-bridge`，贴出：
-   - `/usr/bin/cbfix-bridge --help` 真实输出（必须含 `--interval MS` 与 `--verbose, -v`）
+   - `/usr/bin/cbfix-bridge --help` 真实输出（必须含 `--interval MS`、`--no-waydroid`、`--waydroid-device`、`--version`、`--verbose, -v`）
    - `ldd /usr/bin/cbfix-bridge` 真实输出（必须链接 `libwayland-client.so.0`、`libX11.so.6`、`libXfixes.so.3`）
    - 执行 `! strings usr/bin/cbfix-bridge | grep -qi fixture` 证明三个包内二进制均**绝无 `fixture` 字样**。
 4. **安装后提示脚本真实带色输出**：

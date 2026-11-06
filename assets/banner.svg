@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 340" width="1280" height="340" role="img" aria-label="cbfix-bridge: Wayland and X11 Xwayland Bidirectional Clipboard Bridge">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 340" width="1280" height="340" role="img" aria-label="cbfix-bridge: Wayland, X11 (Xwayland), and Waydroid Three-Way Clipboard Bridge">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0d1117"/>
@@ -44,54 +44,54 @@
   <g transform="translate(640, 44)" text-anchor="middle">
     <text y="0" fill="#f0f6fc" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="30" font-weight="800" letter-spacing="0.5">
       cbfix-bridge
-      <tspan fill="#2dd4bf" font-size="16" font-weight="600" dy="-5">v1.0.0 · C11 Daemon</tspan>
+      <tspan fill="#2dd4bf" font-size="16" font-weight="600" dy="-5">v1.1.4 · C11 Daemon</tspan>
     </text>
     <text y="29" fill="#58a6ff" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="16" font-weight="600" letter-spacing="0.3">
-      Wayland &#x2194; X11 (Xwayland) Bidirectional Clipboard Bridge
+      Wayland &#x2194; X11 (Xwayland) &#x2194; Waydroid Clipboard Bridge
     </text>
     <text y="53" fill="#8b949e" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="14" font-weight="500">
-      彻底解决 Linux Wayland (xwayland-satellite) 下 X11 应用与系统剪贴板不互通
+      彻底解决 Linux Wayland 下 X11 (xwayland-satellite) 与 Waydroid (Android) 剪贴板不互通
     </text>
   </g>
 
-  <!-- Left Column: X11 / Xwayland Apps -->
+  <!-- Left Column: X11 / Xwayland & Waydroid -->
   <g transform="translate(44, 118)">
     <rect x="0" y="0" width="336" height="190" rx="10" fill="url(#leftBoxGrad)" stroke="#6e56cf" stroke-width="1.6"/>
     <rect x="0" y="0" width="336" height="38" rx="10" fill="#1e1b38"/>
     <line x1="0" y1="38" x2="336" y2="38" stroke="#6e56cf" stroke-width="1" stroke-opacity="0.6"/>
     <circle cx="20" cy="19" r="5" fill="#a371f7"/>
-    <text x="34" y="24" fill="#d2a8ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="14" font-weight="700">
-      X11 / Xwayland Clients
+    <text x="34" y="24" fill="#d2a8ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="13.5" font-weight="700">
+      X11 / Xwayland &amp; Waydroid
     </text>
-    <text x="320" y="24" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
-      CLIPBOARD / INCR
+    <text x="320" y="24" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
+      CLIPBOARD / Binder
     </text>
 
     <!-- App Item 1 -->
     <rect x="18" y="52" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-    <text x="32" y="75" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13.5" font-weight="600">
-      X11 GUI Applications
+    <text x="28" y="75" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="12.5" font-weight="600">
+      Waydroid Android Binder (IClipboard)
     </text>
-    <text x="304" y="74" text-anchor="end" fill="#a371f7" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
-      XSetSelectionOwner
+    <text x="308" y="74" text-anchor="end" fill="#3fb950" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
+      libgbinder
     </text>
 
     <!-- App Item 2 -->
     <rect x="18" y="96" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-    <text x="32" y="119" fill="#e6edf3" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="13.5" font-weight="600">
-      CLI Clipboard Tools
+    <text x="28" y="119" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13" font-weight="600">
+      X11 GUI / Java AWT
     </text>
-    <text x="304" y="118" text-anchor="end" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
-      xclip / xsel / Image
+    <text x="308" y="118" text-anchor="end" fill="#a371f7" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
+      X11 Selection / INCR
     </text>
 
     <!-- App Item 3 -->
     <rect x="18" y="140" width="300" height="36" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-    <text x="32" y="163" fill="#e6edf3" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans CJK SC', sans-serif" font-size="13.5" font-weight="600">
-      Java AWT / Swing / OpenJFX
+    <text x="28" y="163" fill="#e6edf3" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="13" font-weight="600">
+      xclip / xsel CLI
     </text>
-    <text x="304" y="162" text-anchor="end" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11">
-      X11 Selection
+    <text x="308" y="162" text-anchor="end" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
+      Text &amp; Image
     </text>
   </g>
 
@@ -103,14 +103,14 @@
     <!-- Backward arrow -->
     <line x1="98" y1="108" x2="18" y2="108" stroke="#2dd4bf" stroke-width="2.2"/>
     <polygon points="18,103 8,108 18,113" fill="#2dd4bf"/>
-    <text x="53" y="68" text-anchor="middle" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11" font-weight="700">
-      XFixes &#x21C4;
+    <text x="53" y="68" text-anchor="middle" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5" font-weight="700">
+      XFixes / Binder
     </text>
     <text x="53" y="128" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10">
-      No Focus Serial
+      Zero Subprocess
     </text>
     <text x="53" y="142" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10">
-      Needed
+      Sync
     </text>
   </g>
 
@@ -124,7 +124,7 @@
       cbfix-bridge
     </text>
     <text x="292" y="25" text-anchor="end" fill="#2dd4bf" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="11" font-weight="700">
-      &#x21C4; Event-Driven
+      &#x21C4; 3-Way Bridge
     </text>
 
     <!-- Core Feature 1 -->
@@ -138,11 +138,11 @@
 
     <!-- Core Feature 2 -->
     <rect x="16" y="98" width="276" height="38" rx="6" fill="#0d1117" stroke="#1f6feb" stroke-width="1.2"/>
-    <text x="154" y="115" text-anchor="middle" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="12.5" font-weight="700">
-      ICCCM / INCR 64MB
+    <text x="154" y="115" text-anchor="middle" fill="#79c0ff" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="12" font-weight="700">
+      ICCCM INCR · Waydroid IClipboard
     </text>
     <text x="154" y="130" text-anchor="middle" fill="#8b949e" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="10.5">
-      UTF-8 · TEXT · image/png · image/bmp
+      UTF-8 · image/png · dlopen(libgbinder)
     </text>
 
     <!-- Core Feature 3 -->

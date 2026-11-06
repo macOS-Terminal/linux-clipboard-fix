@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PKGNAME="cbfix-bridge"
-PKGVER="1.0.0"
+PKGVER="1.1.4"
 PKGREL="1"
 ARCH="x86_64"
 RPM_PKG="${PKGNAME}-${PKGVER}-${PKGREL}.${ARCH}.rpm"

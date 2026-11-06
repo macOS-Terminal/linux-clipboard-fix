@@ -6,10 +6,12 @@ labels: bug
 
 ## 环境信息 / Environment
 
+- **cbfix-bridge 版本 / Version**: (e.g. `v1.1.4` / output of `cbfix-bridge --version`)
 - **发行版 / Distro**: (e.g. Arch Linux / Fedora 41 / Ubuntu 24.04)
-- **Wayland 合成器与版本 / Compositor & Version**: (e.g. `niri 25.02`, `sway 1.10`, `Hyprland 0.47`, `KWin 6.3`)
-- **Xwayland 模式 / Xwayland Setup**: (e.g. `xwayland-satellite 0.5` / compositor built-in `Xwayland`)
-- **涉及的应用 / Affected App(s)**: (e.g. `Java Swing/AWT app`, `xclip`, `X11 GUI client`)
+- **Wayland 合成器与版本 / Compositor & Version**: (e.g. `niri 25.05`, `sway 1.10`, `Hyprland 0.47`, `KWin 6.3`)
+- **Xwayland 模式 / Xwayland Setup**: (e.g. `xwayland-satellite 0.8` / compositor built-in `Xwayland`)
+- **Waydroid 环境（如涉及）/ Waydroid Setup (if applicable)**: (e.g. `Waydroid 1.4 + libgbinder` / not used)
+- **涉及的应用 / Affected App(s)**: (e.g. `Waydroid Android app`, `Java Swing/AWT app`, `xclip`, `X11 GUI client`)
 
 ## 诊断输出 / Diagnostic Output
 

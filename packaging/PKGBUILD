@@ -4,18 +4,19 @@
 # 不要直接在 packaging/ 下运行 makepkg，请用：
 #     bash scripts/build-packages.sh arch
 # 该脚本会：
-#   1. 把工作树（排除 build/ dist/ .git 等）打包成 cbfix-bridge-1.0.0.tar.gz；
+#   1. 把工作树（排除 build/ dist/ .git 等）打包成 cbfix-bridge-1.1.4.tar.gz；
 #   2. 把 packaging/notice.sh 原样内联进 cbfix-bridge.install（替换标记行）；
 #   3. 在临时目录里放好本 PKGBUILD + 上述两个文件，填入真实 sha256 后运行 makepkg。
 
 pkgname=cbfix-bridge
-pkgver=1.0.0
+pkgver=1.1.4
 pkgrel=1
 pkgdesc='Bidirectional clipboard bridge between Wayland (ext-data-control-v1) and X11 (Xwayland)'
 arch=('x86_64')
 url='https://github.com/macOS-Terminal/linux-clipboard-fix'
 license=('MIT')
 depends=('wayland' 'libx11' 'libxfixes')
+optdepends=('libgbinder: Waydroid Android container clipboard integration')
 makedepends=('gcc' 'make' 'pkgconf' 'wayland-protocols')
 options=('!debug')
 install="${pkgname}.install"

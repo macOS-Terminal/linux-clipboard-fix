@@ -8,12 +8,13 @@
 %{!?_userunitdir: %global _userunitdir %{_prefix}/lib/systemd/user}
 
 Name:           cbfix-bridge
-Version:        1.0.0
+Version:        1.1.4
 Release:        1%{?dist}
 Summary:        Bidirectional clipboard bridge between Wayland and X11 (Xwayland)
 License:        MIT
 URL:            https://github.com/macOS-Terminal/linux-clipboard-fix
 Source0:        %{name}-%{version}.tar.gz
+Suggests:       libgbinder
 
 BuildRequires:  gcc
 BuildRequires:  make
@@ -72,5 +73,5 @@ exit 0
 %doc %attr(0644,root,root) %{_datadir}/doc/%{name}/LICENSE
 
 %changelog
-* Fri Nov 06 2026 cbfix contributors <chou114514chou@outlook.com> - 1.0.0-1
+* Fri Nov 06 2026 cbfix contributors <chou114514chou@outlook.com> - 1.1.4-1
 - Initial package built from real source (src/cbfix-bridge.c)

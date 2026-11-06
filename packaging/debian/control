@@ -1,9 +1,10 @@
 Package: cbfix-bridge
-Version: 1.0.0
+Version: 1.1.4
 Section: utils
 Priority: optional
 Architecture: amd64
 Depends: libwayland-client0, libx11-6, libxfixes3
+Suggests: libgbinder
 Maintainer: macOS-Terminal <chou114514chou@outlook.com>
 Homepage: https://github.com/macOS-Terminal/linux-clipboard-fix
 Description: Bidirectional clipboard bridge between Wayland and X11 (Xwayland)

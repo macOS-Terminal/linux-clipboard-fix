@@ -3,7 +3,7 @@
 set -euo pipefail
 
 PKGNAME="cbfix-bridge"
-PKGVER="1.0.0"
+PKGVER="1.1.4"
 DEB_ARCH="amd64"
 DEB_PKG="${PKGNAME}_${PKGVER}_${DEB_ARCH}.deb"
 
@@ -104,7 +104,7 @@ verify_deb_pkg() {
     tar -xJf "${chk}/data.tar.xz"    -C "${chk}/data"
 
     grep -qx 'Package: cbfix-bridge' "${chk}/ctrl/control" || die "control 缺少 Package: cbfix-bridge"
-    grep -qx 'Version: 1.0.0' "${chk}/ctrl/control" || die "control 缺少 Version: 1.0.0"
+    grep -qx "Version: ${PKGVER}" "${chk}/ctrl/control" || die "control 缺少 Version: ${PKGVER}"
     grep -qx 'Architecture: amd64' "${chk}/ctrl/control" || die "control 缺少 Architecture: amd64"
     grep -qx 'Depends: libwayland-client0, libx11-6, libxfixes3' "${chk}/ctrl/control" \
         || die "control 缺少 Depends: libwayland-client0, libx11-6, libxfixes3"

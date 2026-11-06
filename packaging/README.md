@@ -33,9 +33,9 @@ bash scripts/build-packages.sh arch --notice-only
 ```
 
 构建产物位于 `dist/`：
-- Arch Linux：`dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst`
-- Fedora / RHEL / openSUSE：`dist/cbfix-bridge-1.0.0-1.x86_64.rpm`
-- Debian / Ubuntu：`dist/cbfix-bridge_1.0.0_amd64.deb`
+- Arch Linux：`dist/cbfix-bridge-1.1.4-1-x86_64.pkg.tar.zst`
+- Fedora / RHEL / openSUSE：`dist/cbfix-bridge-1.1.4-1.x86_64.rpm`
+- Debian / Ubuntu：`dist/cbfix-bridge_1.1.4_amd64.deb`
 
 ## 3. 验证安装包
 
@@ -43,27 +43,27 @@ bash scripts/build-packages.sh arch --notice-only
 
 ```bash
 # Arch 包
-bsdtar -tvf dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
+bsdtar -tvf dist/cbfix-bridge-1.1.4-1-x86_64.pkg.tar.zst
 
 # RPM 包
-rpm -qplv dist/cbfix-bridge-1.0.0-1.x86_64.rpm
-rpm -qp --scripts dist/cbfix-bridge-1.0.0-1.x86_64.rpm
+rpm -qplv dist/cbfix-bridge-1.1.4-1.x86_64.rpm
+rpm -qp --scripts dist/cbfix-bridge-1.1.4-1.x86_64.rpm
 
 # DEB 包（无需 dpkg-deb）
-ar t dist/cbfix-bridge_1.0.0_amd64.deb
+ar t dist/cbfix-bridge_1.1.4_amd64.deb
 ```
 
 ## 4. 安装与启用服务
 
 ```bash
 # Arch Linux
-sudo pacman -U dist/cbfix-bridge-1.0.0-1-x86_64.pkg.tar.zst
+sudo pacman -U dist/cbfix-bridge-1.1.4-1-x86_64.pkg.tar.zst
 
 # Fedora / RHEL
-sudo dnf install ./dist/cbfix-bridge-1.0.0-1.x86_64.rpm
+sudo dnf install ./dist/cbfix-bridge-1.1.4-1.x86_64.rpm
 
 # Debian / Ubuntu
-sudo apt install ./dist/cbfix-bridge_1.0.0_amd64.deb
+sudo apt install ./dist/cbfix-bridge_1.1.4_amd64.deb
 ```
 
 安装完成后，以**当前桌面普通用户**（不要加 `sudo`）启用并启动 systemd 用户服务：
